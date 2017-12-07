@@ -57,23 +57,32 @@ Define values for use in FHT methodology
 #define FHT_N 16  //Number of bins to calculate
 #define SCALE 4   //precision
 
-
+/***********************
+Inport Libraries
+***********************/
 #include <FHT.h> // Including the FHT library to process the input signals.
 
+
+
+/***********************
+Declare values to be used through the program
+***********************/
 int clock = 8;
 int reset = 9;
 int t,x,y,z;
 
-
-const int numPatterns = 4;
-byte patterns[numPatterns][10]={space,s,b,space};
+const int numPatterns = 4;  //Look into a way to set this to a single setting
+byte patterns[numPatterns][10]={space,s,b,space}; // Start/Finish with space to get copmlete scroll
 //numPatterns = patterns.length()
+
+
 void setup()
 {
-  DDRD=B11111111;           //Enable digital ports 0-7
+  DDRD=B11111111; //Enable digital ports 0-7
 
   //Enable communication with computer
   // Serial.begin(115200)   //Enable this to start communication with PC over USB
+
   //Enabling audio importing
   TIMSK0 = 0;     // turn off timer0, disabling interrupts. REMOVE THIS FIRST IF FAILURE
   ADCSRA = 0xe5;  // set the adc to free running mode
@@ -152,14 +161,20 @@ void importAudio() {
     k <<= 6;                  // form into a 16b signed int
     fht_input[i] = k;         // put real data into bins
   }
-  fht_window();   // window the data for better frequency response
-  fht_reorder();  // reorder the data before doing the fht
-  fht_run();      // process the data in the fht
-  fht_mag_log();  // take the output of the fht
+
+  /*********************
+  FHT audio processing.
+  *********************/
+  fht_window();     // window the data for better frequency response
+  fht_reorder();    // reorder the data before doing the fht
+  fht_run();        // process the data in the fht
+  fht_mag_octave(); // take the output of the fht
   sei();
-  /* Send data to computer for computer analysis.
-  * Enable with seerial in setup.
-  */
+
+  /*********************
+  Send data to computer for computer analysis.
+  Enable with seerial in setup.
+  *********************/
   // Serial.write(255);                  // send a start byte
   // Serial.write(fht_log_out, FHT_N/2); // send out the data
 }
