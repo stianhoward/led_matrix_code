@@ -56,7 +56,6 @@ Define values for use in FHT methodology
 ***********************/
 #define FHT_N 16  //Number of bins to calculate
 #define SCALE 4   //precision
-#define WINDOW 0  //Disable fht_window() funciton. Remove to enable
 
 
 #include <FHT.h> // Including the FHT library to process the input signals.
@@ -71,18 +70,30 @@ byte patterns[numPatterns][10]={space,s,b,space};
 //numPatterns = patterns.length()
 void setup()
 {
-  DDRD=B11111111;
+  DDRD=B11111111;           //Enable digital ports 0-7
+
+  //Enable communication with computer
+  // Serial.begin(115200)   //Enable this to start communication with PC over USB
+  //Enabling audio importing
+  TIMSK0 = 0;     // turn off timer0, disabling interrupts. REMOVE THIS FIRST IF FAILURE
+  ADCSRA = 0xe5;  // set the adc to free running mode
+  ADMUX = 0x40;   // use adc0
+  DIDR0 = 0x01;   // turn off the digital input for adc0
+
+  //Initialize and reset decade counter
   pinMode(clock,OUTPUT);
   pinMode(reset,OUTPUT);
- digitalWrite(reset,HIGH);
+  digitalWrite(reset,HIGH);
   delayMicroseconds(5);
- digitalWrite(reset,LOW);
+  digitalWrite(reset,LOW);
 }
 
 void loop()
 {
  show2(50);
- //PORTD = B00000001;
+ while(1) {
+  importAudio();
+ }
 }
 
 void show(int speed) {
@@ -128,29 +139,27 @@ void show2(int speed) {
   }
 }
 
-/*
-void show(int loops)
-{
-  for(x=0;x<numPatterns-1;x++)
-  {
-   for (int z=0;z<8;z++)
-   {
-    for(int t=0;t<loops;t++)
-    {
-     for(y=0;y<10;y++)
-     {
-     byte temp = patterns[x][y];
-     byte temp_2=patterns[x+1][y];
-      PORTD = (temp<<z)+(temp_2>>7-z);
-     delayMicroseconds(800);
-     PORTD=B00000000;
-    digitalWrite(clock,HIGH);
-     delayMicroseconds(5);
-    digitalWrite(clock,LOW);
-     }
-    }
-   }
-  }
-}
-*/
 
+void importAudio() {
+  cli();  // UDRE interrupt slows this way down on arduino1.0
+  for (int i = 0 ; i < FHT_N ; i++) {   // save specified number of samples
+    while(!(ADCSRA & 0x10));  // wait for adc to be ready
+    ADCSRA = 0xf5;            // restart adc
+    byte m = ADCL;            // fetch adc data
+    byte j = ADCH;
+    int k = (j << 8) | m;     // form into an int
+    k -= 0x0200;              // form into a signed int
+    k <<= 6;                  // form into a 16b signed int
+    fht_input[i] = k;         // put real data into bins
+  }
+  fht_window();   // window the data for better frequency response
+  fht_reorder();  // reorder the data before doing the fht
+  fht_run();      // process the data in the fht
+  fht_mag_log();  // take the output of the fht
+  sei();
+  /* Send data to computer for computer analysis.
+  * Enable with seerial in setup.
+  */
+  // Serial.write(255);                  // send a start byte
+  // Serial.write(fht_log_out, FHT_N/2); // send out the data
+}
