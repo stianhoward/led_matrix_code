@@ -51,20 +51,6 @@ Letter and script definitions
 #define 9 {B00000000,B00111100,B01000010,B01000010,B01000010,B00111110,B00000010,B00000010,B00111100,B00000000
 */
 
-/***********************
-Define values for use in FHT methodology
-***********************/
-#define FHT_N 16  //Number of bins to calculate
-#define SCALE 16   //precision
-#define OCTAVE 1
-//#define LOG_OUT 1 //use log
-
-/***********************
-Inport Libraries
-***********************/
-#include <FHT.h> // Including the FHT library to process the input signals.
-
-
 
 /***********************
 Declare values to be used through the program
@@ -101,7 +87,7 @@ void setup()
 
   // Initialize welcome screen
   show(50);
-  
+
 }
 
 void loop()
@@ -136,6 +122,7 @@ void show(int speed) {
 
 
 void displayData(){
+  /*
   Serial.write(255);                  // send a start byte
   //Serial.write(fht_log_out, FHT_N/2); // send out the data
   for(int i=0; i<(sizeof(fht_oct_out)); i++){
@@ -147,39 +134,14 @@ void displayData(){
     Serial.print(fht_input[i]);
     Serial.print("\n");
   }
+  */
+
+  // Modify Show script for array passed in
+  return;
 }
 
 
 void importAudio() {
-  cli();  // UDRE interrupt slows this way down on arduino1.0
-  for (int i = 0 ; i < FHT_N ; i++) {   // save specified number of samples
-    while(!(ADCSRA & 0x10));  // wait for adc to be ready
-    ADCSRA = 0xf5;            // restart adc
-    byte m = ADCL;            // fetch adc data
-    byte j = ADCH;
-    int k = (j << 8) | m;     // form into an int
-    k -= 0x0200;              // form into a signed int
-    k <<= 6;                  // form into a 16b signed int
-    fht_input[i] = k;         // put real data into bins
-  }
-
-  /*********************
-  FHT audio processing.
-  *********************/
-  fht_window();     // window the data for better frequency response
-  fht_reorder();    // reorder the data before doing the fht
-  fht_run();        // process the data in the fht
-  fht_mag_octave(); // take the output of the fht
-  sei();
-
-  /*********************
-  Send data to computer for computer analysis.
-  Enable with seerial in setup.
-  *********************/
-  /*
-  Serial.write(255);                  // send a start byte
-  //Serial.write(fht_log_out, FHT_N/2); // send out the data
-  for(int i=0; i<(sizeof(fht_log_out)); i++){
-    Serial.print(fht_log_out[i]);
-  }*/
+  //Import values, and save to an int array
+  return;
 }
