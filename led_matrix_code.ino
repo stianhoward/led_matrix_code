@@ -17,7 +17,7 @@ Letter and script definitions
 #define c     {B01111000,B10000100,B10000100,B10000100,B01001000,B00000000,B00000000,B00000000,B00000000,B00000000}
 #define D     {B00000000,B01111100,B01000010,B01000010,B01000010,B01000010,B01000010,B01000010,B01111100,B00000000}
 #define E     {B00000000,B01111110,B01000000,B01000000,B01111100,B01000000,B01000000,B01000000,B01111110,B00000000}
-#define F     {B00000000,B01111110,B01000000,B01000000,B01111100,B01000000,B01000000,B01000000,B01000000,B00000000}
+//#define F     {B00000000,B01111110,B01000000,B01000000,B01111100,B01000000,B01000000,B01000000,B01000000,B00000000}
 #define G     {B00000000,B00111100,B01000010,B01000010,B01000000,B01000111,B01000010,B01000010,B00111100,B00000000}
 #define H     {B00000000,B01000010,B01000010,B01000010,B01111110,B01000010,B01000010,B01000010,B01000010,B00000000}
 #define I     {B00000000,B00111000,B00010000,B00010000,B00010000,B00010000,B00010000,B00010000,B00111000,B00000000}
@@ -56,6 +56,7 @@ Define values for use in FHT methodology
 ***********************/
 #define FHT_N 16  //Number of bins to calculate
 #define SCALE 4   //precision
+#define LOG_OUT 1 //use log
 
 /***********************
 Inport Libraries
@@ -72,16 +73,17 @@ int reset = 9;
 int t,x,y,z;
 
 const int numPatterns = 4;  //Look into a way to set this to a single setting
-byte patterns[numPatterns][10]={space,s,b,space}; // Start/Finish with space to get copmlete scroll
+byte patterns[numPatterns][10]={space,b,s,space}; // Start/Finish with space to get copmlete scroll
 //numPatterns = patterns.length()
 
 
 void setup()
 {
   DDRD=B11111111; //Enable digital ports 0-7
+  DDRB=B00001100;
 
   //Enable communication with computer
-  // Serial.begin(115200)   //Enable this to start communication with PC over USB
+  Serial.begin(9600);   //Enable this to start communication with PC over USB
 
   //Enabling audio importing
   TIMSK0 = 0;     // turn off timer0, disabling interrupts. REMOVE THIS FIRST IF FAILURE
@@ -95,13 +97,18 @@ void setup()
   digitalWrite(reset,HIGH);
   delayMicroseconds(5);
   digitalWrite(reset,LOW);
+
+  // Initialize welcome screen
+  show(50);
+  
 }
 
 void loop()
 {
- show2(50);
+ //show(50);
  while(1) {
   importAudio();
+  //displayData();
  }
 }
 
@@ -111,6 +118,8 @@ void show(int speed) {
       for(t=0;t<speed;t++){
         for(y=0;y<10;y++){
           PORTD = (patterns[z][y+x]);
+          PORTB = B00001100 & (PORTD << 2);
+          //PORTD = B00001100;
           delayMicroseconds(800);
 
           PORTD=B00000000;
@@ -125,20 +134,21 @@ void show(int speed) {
 }
 
 void show2(int speed) {
-  for(z=0;z<numPatterns-1;z++){
-    for(x=0;x<7;x++){
-      for(t=0;t<speed;t++){
-        for(y=0;y<10;y++){
-          if (x<5){
+  for(z=0;z<numPatterns-1;z++){     // Iterate throught the letters to display
+    for(x=0;x<10;x++){               // LEDs between letter (Should be at 10 for no screen tearing)
+      for(t=0;t<speed;t++){         // Numer of times to display each letter
+        for(y=0;y<10;y++){          // Size of each letter
+          /*if (x<5){   //Experiment to decrease letter spacing
             PORTD = (patterns[z][y+x] + patterns[z+1][y+x-7]);
           } else {
             PORTD = (patterns[z][y+x] + patterns[z+1][y+x-7] + patterns[z+2][x+y-14]);
-          }
-          //PORTD = patterns[z][y+x];
+          }*/
+          //Base code that works, but has unusually large spacing
+          PORTD = patterns[z][y+x];
           delayMicroseconds(800);
 
-          PORTD=B00000000;
-          digitalWrite(clock,HIGH);
+          PORTD=B00000000;          // Reset port registers
+          digitalWrite(clock,HIGH); //Reset decade counter
           delayMicroseconds(5);
           digitalWrite(clock,LOW);
 
@@ -168,13 +178,17 @@ void importAudio() {
   fht_window();     // window the data for better frequency response
   fht_reorder();    // reorder the data before doing the fht
   fht_run();        // process the data in the fht
-  fht_mag_octave(); // take the output of the fht
+  fht_mag_log(); // take the output of the fht
   sei();
 
   /*********************
   Send data to computer for computer analysis.
   Enable with seerial in setup.
   *********************/
-  // Serial.write(255);                  // send a start byte
-  // Serial.write(fht_log_out, FHT_N/2); // send out the data
+  Serial.write(255);                  // send a start byte
+  //Serial.write(fht_log_out, FHT_N/2); // send out the data
+  for(int i=0; i<(sizeof(fht_log_out)); i++){
+    Serial.print(fht_log_out[i]);
+  }
+  //Serial.print(fht_log_out[1]);
 }
