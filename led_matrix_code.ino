@@ -68,15 +68,10 @@ void setup()
 {
   DDRD=B11111111; //Enable digital ports 0-7
   DDRB=B00001100;
+  DDRC=B00000;    //Set the analog pins to input sound bands
 
   //Enable communication with computer
   Serial.begin(9600);   //Enable this to start communication with PC over USB
-
-  //Enabling audio importing
-  TIMSK0 = 0;     // turn off timer0, disabling interrupts. REMOVE THIS FIRST IF FAILURE
-  ADCSRA = 0xe5;  // set the adc to free running mode
-  ADMUX = 0x40;   // use adc0
-  DIDR0 = 0x01;   // turn off the digital input for adc0
 
   //Initialize and reset decade counter
   pinMode(clock,OUTPUT);
@@ -88,27 +83,31 @@ void setup()
   // Initialize welcome screen
   show(50);
 
+  //Declare array for audio input storage
+  int audioArray[5];
+  byte displayArray[0];
 }
 
 void loop()
 {
  //show(50);
  while(1) {
-  importAudio();
-  displayData();
+  importAudio(displayArray);
+  displayData(40, displayArray);
  }
 }
 
-void show(int speed) {
+void show(int speed) {  //Look into how to pause on the letter.
   for(z=0;z<numPatterns-1;z++){
     for(x=0;x<10;x++){
       for(t=0;t<speed;t++){
         for(y=0;y<10;y++){
           PORTD = (patterns[z][y+x]);
           PORTB = B00001100 & (PORTD << 2);
-          //PORTD = B00001100;
           delayMicroseconds(800);
-
+          if (y ==   9) {
+            delay(5);
+          }
           PORTD=B00000000;
           digitalWrite(clock,HIGH);
           delayMicroseconds(5);
@@ -118,30 +117,55 @@ void show(int speed) {
       }
     }
   }
-}
-
-
-void displayData(){
-  /*
-  Serial.write(255);                  // send a start byte
-  //Serial.write(fht_log_out, FHT_N/2); // send out the data
-  for(int i=0; i<(sizeof(fht_oct_out)); i++){
-    Serial.print(fht_oct_out[i]);
-    Serial.print("\n");
-  }
-  Serial.print("AudioInput");
-    for(int i=0; i<(sizeof(fht_input)); i++){
-    Serial.print(fht_input[i]);
-    Serial.print("\n");
-  }
-  */
-
-  // Modify Show script for array passed in
   return;
 }
 
 
-void importAudio() {
+//Take the byte displayArray, and display it, repeating 'speed' times
+void displayData(int speed, byte displayArray){
+  for(t=0;t<speed;t++){           // Display 'speed' times. Sets refresh rate
+    for(y=0;y<10;y++){            // iterate through all 10 columns
+      PORTD = (patterns[y/2]);    // 2 pixel wide columns. also scales down to 5 large array
+      delayMicroseconds(800);
+      PORTD=B00000000;
+      digitalWrite(clock,HIGH);
+      delayMicroseconds(5);
+      digitalWrite(clock,LOW);
+    }
+  }
+
+  return;
+}
+
+
+void importAudio(byte displayArray) {
   //Import values, and save to an int array
+  int maxIn = 255;
+  for (int i=0; i<5; i++){
+    //audioArray[i] = analogRead(i);
+    Serial.println(analogRead(i));
+    int importValue = analogRead(i);
+
+
+    if (importValue/maxIn <= 0.125 ){
+      displayArray[i] = B10000000;
+    } else if (importValue/maxIn <= 0.25){
+      displayArray[i] = B11000000;
+    } else if (importValue/maxIn <= 0.375){
+      displayArray[i] = B11100000;
+    } else if (importValue/maxIn <= 0.5){
+      displayArray[i] = B11110000;
+    } else if (importValue/maxIn <= 0.625){
+      displayArray[i] = B11111000;
+    } else if (importValue/maxIn <= 0.75){
+      displayArray[i] = B11111100;
+    } else if (importValue/maxIn <= 0.875){
+      displayArray[i] = B11111110;
+    } else {
+      displayArray[i] = B11111111;
+    }
+  }
+
+
   return;
 }
