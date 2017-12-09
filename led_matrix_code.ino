@@ -60,8 +60,11 @@ int reset = 9;
 int t,x,y,z;
 
 const int numPatterns = 4;  //Look into a way to set this to a single setting
-byte patterns[numPatterns][10]={space,b,s,space}; // Start/Finish with space to get copmlete scroll
-//numPatterns = patterns.length()
+byte patterns[numPatterns][10]={space,b,s,space};
+//byte patterns[numPatterns][10]={W,E,L,C,O,M,E,space,T,O,space,H,E,L,L,space}; // Start/Finish with space to get copmlete scroll
+
+//Declare array for audio input storage
+byte displayArray[5];
 
 
 void setup()
@@ -81,19 +84,15 @@ void setup()
   digitalWrite(reset,LOW);
 
   // Initialize welcome screen
-  show(50);
-
-  //Declare array for audio input storage
-  int audioArray[5];
-  byte displayArray[0];
+  show(10);
 }
 
 void loop()
 {
  //show(50);
  while(1) {
-  importAudio(displayArray);
-  displayData(40, displayArray);
+  importAudio();
+  displayData(40);
  }
 }
 
@@ -122,10 +121,12 @@ void show(int speed) {  //Look into how to pause on the letter.
 
 
 //Take the byte displayArray, and display it, repeating 'speed' times
-void displayData(int speed, byte displayArray){
+void displayData(int speed){
   for(t=0;t<speed;t++){           // Display 'speed' times. Sets refresh rate
     for(y=0;y<10;y++){            // iterate through all 10 columns
-      PORTD = (patterns[y/2]);    // 2 pixel wide columns. also scales down to 5 large array
+      PORTD = displayArray[y/2];    // 2 pixel wide columns. also scales down to 5 large array
+      PORTB = B00001100 & (PORTD << 2);
+      //Serial.println(PORTD);
       delayMicroseconds(800);
       PORTD=B00000000;
       digitalWrite(clock,HIGH);
@@ -138,14 +139,16 @@ void displayData(int speed, byte displayArray){
 }
 
 
-void importAudio(byte displayArray) {
+void importAudio() {
   //Import values, and save to an int array
-  int maxIn = 255;
+  double maxIn = 32;    //might need to set to double
   for (int i=0; i<5; i++){
-    //audioArray[i] = analogRead(i);
-    Serial.println(analogRead(i));
+    //Serial.println(analogRead(i));
     int importValue = analogRead(i);
 
+    if (i == 3) {
+      Serial.println(importValue);
+    }
 
     if (importValue/maxIn <= 0.125 ){
       displayArray[i] = B10000000;
@@ -165,6 +168,7 @@ void importAudio(byte displayArray) {
       displayArray[i] = B11111111;
     }
   }
+  
 
 
   return;
