@@ -51,6 +51,14 @@ Letter and script definitions
 #define 9 {B00000000,B00111100,B01000010,B01000010,B01000010,B00111110,B00000010,B00000010,B00111100,B00000000
 */
 
+#define in1     {B00000000,B00000000,B00000000,B00000000,B00011000,B00011000,B00000000,B00000000,B00000000,B00000000}
+#define in2     {B00000000,B00000000,B00000000,B00111100,B00100100,B00100100,B00111100,B00000000,B00000000,B00000000}
+#define in3     {B00000000,B00000000,B01111110,B01000010,B01011010,B01011010,B01000010,B01111110,B00000000,B00000000}
+#define in4     {B00000000,B11111111,B10000001,B10111101,B10100101,B10100101,B10111101,B10000001,B11111111,B00000000}
+#define in5     {B11111111,B00000000,B01111110,B01000010,B01000010,B01000010,B01000010,B01111110,B00000000,B11111111}
+#define in6     {B00000000,B11111111,B10000001,B10000001,B10000001,B10000001,B10000001,B10000001,B11111111,B00000000}
+#define in7     {B11111111,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B11111111}
+
 
 /***********************
 Declare values to be used through the program
@@ -60,8 +68,9 @@ int reset = 9;
 int t,x,y,z;
 
 const int numPatterns = 4;  //Look into a way to set this to a single setting
-byte patterns[numPatterns][10]={space,b,s,space};
-//byte patterns[numPatterns][10]={W,E,L,C,O,M,E,space,T,O,space,H,E,L,L,space}; // Start/Finish with space to get copmlete scroll
+byte patterns[numPatterns][10]={space,H,s,space};
+const int numIntroPatterns = 7;
+byte introPatterns[numIntroPatterns][10] = {in1, in2, in3, in4, in5, in6, in7};
 
 //Declare array for audio input storage
 byte displayArray[5];
@@ -84,19 +93,19 @@ void setup()
   digitalWrite(reset,LOW);
 
   // Initialize welcome screen
-  show(10);
+  showIntro(100);
+  showText(20);
 }
 
 void loop()
 {
- //show(50);
  while(1) {
   importAudio();
-  displayData(40);
+  displayData(5);
  }
 }
 
-void show(int speed) {  //Look into how to pause on the letter.
+void showText(int speed) {  //Look into how to pause on the letter.
   for(z=0;z<numPatterns-1;z++){
     for(x=0;x<10;x++){
       for(t=0;t<speed;t++){
@@ -119,12 +128,35 @@ void show(int speed) {  //Look into how to pause on the letter.
   return;
 }
 
+void showIntro(int speed) {
+  for(z=0;z<numIntroPatterns;z++){
+    for(t=0;t<speed;t++){
+      for(y=0;y<10;y++){
+        PORTD = (introPatterns[z][y]);
+        PORTB = B00001100 & (PORTD << 2);
+        delayMicroseconds(800);
+        if (y ==   9) {
+          delay(5);
+        }
+        PORTD=B00000000;
+        digitalWrite(clock,HIGH);
+        delayMicroseconds(5);
+        digitalWrite(clock,LOW);
+
+      }
+    }
+}
+  return;
+}
+
 
 //Take the byte displayArray, and display it, repeating 'speed' times
 void displayData(int speed){
   for(t=0;t<speed;t++){           // Display 'speed' times. Sets refresh rate
     for(y=0;y<10;y++){            // iterate through all 10 columns
+      //Serial.println(displayArray[y/2]);
       PORTD = displayArray[y/2];    // 2 pixel wide columns. also scales down to 5 large array
+      //PORTD = B11110000;
       PORTB = B00001100 & (PORTD << 2);
       //Serial.println(PORTD);
       delayMicroseconds(800);
@@ -141,34 +173,35 @@ void displayData(int speed){
 
 void importAudio() {
   //Import values, and save to an int array
-  double maxIn = 32;    //might need to set to double
+  double maxIn = 55;    //might need to set to double
   for (int i=0; i<5; i++){
-    //Serial.println(analogRead(i));
     int importValue = analogRead(i);
+    double portion = importValue / maxIn;
 
-    if (i == 3) {
-      Serial.println(importValue);
-    }
+    //if (i == 0) {
+     // Serial.println(importValue);
+    //}
 
-    if (importValue/maxIn <= 0.125 ){
+    if (portion <= 0.175 ){
       displayArray[i] = B10000000;
-    } else if (importValue/maxIn <= 0.25){
+    } else if (portion <= 0.3){
       displayArray[i] = B11000000;
-    } else if (importValue/maxIn <= 0.375){
+    } else if (portion <= 0.425){
       displayArray[i] = B11100000;
-    } else if (importValue/maxIn <= 0.5){
+    } else if (portion <= 0.55){
       displayArray[i] = B11110000;
-    } else if (importValue/maxIn <= 0.625){
+    } else if (portion <= 0.625){
       displayArray[i] = B11111000;
-    } else if (importValue/maxIn <= 0.75){
+    } else if (portion <= 0.75){
       displayArray[i] = B11111100;
-    } else if (importValue/maxIn <= 0.875){
+    } else if (portion <= 0.875){
       displayArray[i] = B11111110;
     } else {
       displayArray[i] = B11111111;
     }
+    //displayArray[i] = patterns[2][i];
   }
-  
+
 
 
   return;
